@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+    # --- Service 1: PostgreSQL Database ---
+    db:
+        image: postgres:15
+        container_name: upi_sentinel_db
+        restart: always
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: password123 # Change this for prod
+            POSTGRES_DB: upi_sentinel_db
+        ports:
+            - "5432:5432"
+        volumes:
+            # 1. This loads your CSV data (as SQL) automatically on first startup!
+            - ./upi_sentinel_seed.sql:/docker-entrypoint-initdb.d/init.sql
+            # 2. This saves your data so it doesn't disappear when you stop Docker
+            - postgres_data:/var/lib/postgresql/data
+
+    # --- Service 2: Node.js Backend ---
+    api:
+        build: . # Build from the current directory (Dockerfile)
+        container_name: upi_sentinel_api
+        restart: always
+        ports:
+            - "3000:3000" # Maps container port 3000 to your machine's 3000
+        depends_on:
+            - db # Waits for DB to start before starting API
+        environment:
+            # The hostname is 'db' (the service name above), NOT 'localhost'
+            - DB_HOST=db
+            - DB_USER=postgres
+            - DB_PASS=password123
+            - DB_NAME=upi_sentinel_db
+            - DB_PORT=5432
+
+volumes:
+    postgres_data:

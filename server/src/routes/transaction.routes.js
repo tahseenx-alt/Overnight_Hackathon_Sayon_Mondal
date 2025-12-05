@@ -1,16 +1,12 @@
-import express from "express";
-import { upload } from "../middlewares/upload.middlewares.js";
-import {
-    analyzeSingleTransaction,
-    analyzeBulkFile,
-} from "../controllers/transaction.controllers.js";
+import { Router } from "express";
+import { uploadCsv } from "../controllers/transaction.controllers.js";
+import multer from "multer";
 
-const router = express.Router();
+const router = Router();
+// Save files to a temporary 'uploads' folder
+const upload = multer({ dest: "uploads/" });
 
-// 1. Real-time Analysis Endpoint (JSON Input)
-router.post("/analyze", analyzeSingleTransaction);
-
-// 2. Bulk Upload Endpoint (CSV/JSON File Input)
-router.post("/upload", upload.single("file"), analyzeBulkFile);
+// Upload CSV of transactions
+router.post("/upload", upload.single("file"), uploadCsv);
 
 export default router;

@@ -1,55 +1,27 @@
-import * as transactionService from "../services/transaction.services.js";
+import { processTransactionFile } from "../services/transaction.services.js";
+import fs from "fs";
 
-/**
- * Endpoint: POST /api/transactions/analyze
- * Desc: Analyzes a single JSON transaction object in real-time.
- */
-export const analyzeSingleTransaction = async (req, res, next) => {
-    try {
-        const transactionData = req.body;
-
-        console.log("⚡ Analyzing Transaction:", transactionData.id);
-
-        if (!transactionData) {
-            return res.status(400).json({ error: "Payload missing" });
-        }
-
-        const result = await transactionService.detectFraud(transactionData);
-
-        res.status(200).json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        console.error("Analysis Error:", error);
-        res.status(500).json({ error: "Internal Analysis Error" });
-    }
-};
-
-/**
- * Endpoint: POST /api/transactions/upload
- * Desc: Processes a bulk CSV file for batch analysis.
- */
-export const analyzeBulkFile = async (req, res, next) => {
+export const uploadCsv = async (req, res) => {
     try {
         if (!req.file) {
-            return res
-                .status(400)
-                .json({ error: "No file uploaded. Please attach a CSV." });
+            return res.status(400).json({ message: "No file uploaded" });
         }
 
-        console.log("📂 Processing Batch File:", req.file.originalname);
+        const filePath = req.file.path;
 
-        const result = await transactionService.processBatchFile(req.file);
+        // Call service to process the file
+        const analysisResult = await processTransactionFile(filePath);
 
+        // Cleanup: Delete the temp file after processing
+        fs.unlinkSync(filePath);
+
+        // Return the JSON result to the frontend
         res.status(200).json({
-            success: true,
-            message: "Batch analysis complete",
-            summary: result.summary,
-            alerts: result.detailed_report,
+            message: "Analysis Complete",
+            data: analysisResult,
         });
     } catch (error) {
-        console.error("Batch Processing Error:", error);
-        res.status(500).json({ error: "File processing failed" });
+        console.error("Controller Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
